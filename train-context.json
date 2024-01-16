@@ -75,4 +75,16 @@
       }
     ]
   }
+  {
+    "role": "user",
+    "parts": [{ "text": "thank you" }]
+  },
+  {
+    "role": "model",
+    "parts": [
+      {
+        "text": "No problem. I am always available to help you to choose a suitable job."
+      }
+    ]
+  }
 ]
