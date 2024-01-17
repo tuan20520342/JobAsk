@@ -4,14 +4,15 @@ const bodyParser = require("body-parser");
 const fs = require("fs");
 const cors = require("cors");
 const { getJson } = require("serpapi");
+const axios = require("axios");
 const {
-    GoogleGenerativeAI,
-    HarmCategory,
-    HarmBlockThreshold,
-  } = require("@google/generative-ai");
-  require("dotenv").config();
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} = require("@google/generative-ai");
+require("dotenv").config();
 
-const port = 3000;
+const port = 5000;
 
 const app = express();
 app.use(express.json());
@@ -33,89 +34,104 @@ const loadHistoryFromFile = (jsonPath) => {
   }
 };
 
-const chatLog = loadHistoryFromFile("train-context.json");
+function UpdateConversation(role, text, JsonArray) {
+  const newElement = {
+    role: role,
+    parts: [
+      {
+        text: text,
+      },
+    ],
+  };
+  JsonArray.push(newElement);
+  return JsonArray;
+}
+
+let chatLog = loadHistoryFromFile("train-context.json");
 
 const askGemini = async (question, res) => {
-    let tryCount = 0;
-  
-    const handleError = (error) => {
-      console.error("Error: ", error.message);
-      res.status(500).json({ error: error.message });
-    };
-  
-    const handleRetry = async (text) => {
-      tryCount++;
-      console.log("Trying times: ", tryCount);
-      console.log(text);
-  
-      if (tryCount > 5) {
-        console.error("Exceeded maximum retries.");
-        res.status(500).json({ error: "Exceeded maximum retries." });
-      } else {
-        await askGemini(
-          `I want a better answer, and remember to provide response in JSON format as my example. My question: ${question}`,
-          res
-        );
-      }
-    };
-  
-    try {
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-      const generationConfig = {
-        temperature: 0.9,
-        topK: 1,
-        topP: 1,
-        maxOutputTokens: 2048,
-      };
-  
-      const safetySettings = [
-        {
-          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        },
-        {
-          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        },
-        {
-          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        },
-        {
-          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        },
-      ];
-      const chat = model.startChat({
-        generationConfig,
-        safetySettings,
-        history: chatLog,
-      });
-  
-      const result = await chat.sendMessage(question);
-      const response = result.response;
-      const text = response
-        .text()
-        .replaceAll("json", "")
-        .replaceAll("```", "")
-        .trim();
-  
-      try {
-        const jsonData = JSON.parse(text);
-        res.json(jsonData);
-        console.log(response.text().trim());
-      } catch (error) {
-        await handleRetry(text);
-      }
-    } catch (error) {
-      handleError(error);
+  let tryCount = 0;
+
+  const handleError = (error) => {
+    console.error("Error: ", error.message);
+    res.status(500).json({ error: error.message });
+  };
+
+  const handleRetry = async (text) => {
+    tryCount++;
+    console.log("Trying times: ", tryCount);
+    console.log(text);
+
+    if (tryCount > 5) {
+      console.error("Exceeded maximum retries.");
+      res.status(500).json({ error: "Exceeded maximum retries." });
+    } else {
+      await askGemini(
+        `I want a better answer, and remember to provide response in JSON format as my example. My question: ${question}`,
+        res
+      );
     }
   };
-  
-  app.post("/ask", async (req, res) => {
-    const { question } = req.body;
-    await askGemini(question, res);
-  });
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const generationConfig = {
+      temperature: 0.9,
+      topK: 1,
+      topP: 1,
+      maxOutputTokens: 2048,
+    };
+
+    const safetySettings = [
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+      },
+    ];
+    const chat = model.startChat({
+      generationConfig,
+      safetySettings,
+      history: chatLog,
+    });
+
+    const result = await chat.sendMessage(question);
+    const response = result.response;
+    const text = response
+      .text()
+      .replaceAll("json", "")
+      .replaceAll("```", "")
+      .trim();
+
+    try {
+      const jsonData = JSON.parse(text);
+      res.json(jsonData);
+      console.log(response.text().trim());
+      chatLog = UpdateConversation("user", question, chatLog);
+      chatLog = UpdateConversation("model", response.text().trim(), chatLog);
+    } catch (error) {
+      await handleRetry(text);
+    }
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+app.post("/ask", async (req, res) => {
+  const { question } = req.body;
+  await askGemini(question, res);
+});
 
 // https://github.com/VishwaGauravIn/linkedin-jobs-api
 app.post("/findJobs", async (req, res) => {
@@ -133,7 +149,7 @@ app.post("/findJobs", async (req, res) => {
       salary: "", // minimum salary in USD
       experienceLevel: level, // internship, entry level, associate, senior, director, executive
       limit: "100",
-      sortBy: "recent" // recent, relevant
+      sortBy: "recent", // recent, relevant
     };
     const response = await linkedIn.query(queryOptions);
     res.status(200).json(response);
@@ -166,19 +182,21 @@ app.post("/findCompanyLocations", (req, res) => {
 
 app.get("/news", async (req, res) => {
   try {
-    const { keyword } = req.query;
-
+    const { q } = req.query;
     const apiUrl = "https://newsapi.org/v2/everything";
     const response = await axios.get(apiUrl, {
       params: {
-        q: keyword,
+        q,
         sortBy: "popularity",
-        pageSize: 30,
         apiKey: process.env.NEWS_API_KEY,
       },
     });
 
-    res.json(response.data);
+    const filteredArticles = response.data.articles.filter(
+      (article) => article.urlToImage !== null
+    );
+
+    res.json(filteredArticles);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

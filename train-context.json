@@ -74,7 +74,7 @@
         "text": "{\n \"jobs\": [\n  {\n   \"title\": \"DevOps Engineer\",\n   \"level\": \"Associate\",\n   \"suitable_rate\": 0.8\n  },\n  {\n   \"title\": \"DevOps Specialist\",\n   \"level\": \"Senior\",\n   \"suitable_rate\": 0.7\n  },\n  {\n   \"title\": \"CI/CD Engineer\",\n   \"level\": \"Entry Level\",\n   \"suitable_rate\": 0.6\n  },\n  {\n   \"title\": \"Cloud Engineer\",\n   \"level\": \"Senior\",\n   \"suitable_rate\": 0.7\n  },\n  {\n   \"title\": \"Automation Engineer\",\n   \"level\": \"Associate\",\n   \"suitable_rate\": 0.8\n  },\n  {\n   \"title\": \"DevOps Consultant\",\n   \"level\": \"Director\",\n   \"suitable_rate\": 0.6\n  }\n ],\n \"answer\": \"Based on your skills, experience, and education, here are some DevOps jobs that might be a good fit for you in Vietnam:\\n\\n1. **DevOps Engineer (Associate)**\\n2. **DevOps Specialist (Senior)**\\n3. **CI/CD Engineer (Entry Level)**\\n4. **Cloud Engineer (Senior)**\\n5. **Automation Engineer (Associate)**\\n6. **DevOps Consultant (Director)**\\n\\nThese roles offer diverse opportunities for you to contribute to software development teams and drive innovation in the tech industry. If you'd like to learn more about these positions or explore additional options, feel free to ask.\",\n \"related_topics\": [\n  \"DevOps Best Practices\",\n  \"Cloud Computing Trends\",\n  \"CI/CD Pipeline Optimization\"\n ]\n}"
       }
     ]
-  }
+  },
   {
     "role": "user",
     "parts": [{ "text": "thank you" }]
