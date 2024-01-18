@@ -136,14 +136,14 @@ app.post("/ask", async (req, res) => {
 // https://github.com/VishwaGauravIn/linkedin-jobs-api
 app.post("/findJobs", async (req, res) => {
   try {
-    const { tittle, level } = req.body;
-    if (!tittle) {
+    const { title, level } = req.body;
+    if (!title) {
       return res.status(400).json({ error: "Missing parameters" });
     }
     const queryOptions = {
-      keyword: tittle,
-      location: "Vietnam",
-      dateSincePosted: "past Month",
+      keyword: title,
+      location: "Vietnam", // You can update the location as needed
+      dateSincePosted: "past month", // You can adjust the date range
       jobType: "", // full time, part time, contract, temporary, volunteer, internship
       remoteFilter: "", // on site, remote, hybrid
       salary: "", // minimum salary in USD
