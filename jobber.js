@@ -1,18 +1,16 @@
 const express = require("express");
-const linkedIn = require("linkedin-jobs-api");
-const bodyParser = require("body-parser");
-const fs = require("fs");
 const cors = require("cors");
-const { getJson } = require("serpapi");
+const fs = require("fs");
 const axios = require("axios");
+const bodyParser = require("body-parser");
+const { getJson } = require("serpapi");
+const linkedIn = require("linkedin-jobs-api");
 const {
   GoogleGenerativeAI,
   HarmCategory,
   HarmBlockThreshold,
 } = require("@google/generative-ai");
 require("dotenv").config();
-
-const port = 5000;
 
 const app = express();
 app.use(express.json());
@@ -33,7 +31,6 @@ const loadHistoryFromFile = (jsonPath) => {
     return [];
   }
 };
-
 function UpdateConversation(role, text, JsonArray) {
   const newElement = {
     role: role,
@@ -45,6 +42,20 @@ function UpdateConversation(role, text, JsonArray) {
   };
   JsonArray.push(newElement);
   return JsonArray;
+}
+async function getImageAsBase64(url) {
+  try {
+    // Fetch the image using axios
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+
+    // Convert the image buffer to base64
+    const base64Data = Buffer.from(response.data, 'binary').toString('base64');
+
+    return base64Data;
+  } catch (error) {
+    console.error('Error fetching or converting the image:', error.message);
+    throw error;
+  }
 }
 
 let chatLog = loadHistoryFromFile("train-context.json");
@@ -67,7 +78,7 @@ const askGemini = async (question, res) => {
       res.status(500).json({ error: "Exceeded maximum retries." });
     } else {
       await askGemini(
-        `I want a better answer, and remember to provide response in JSON format as my example. My question: ${question}`,
+        `I want a better answer, and remember to provide response in JSON format as my example and use English for the answer. My question: ${question}`,
         res
       );
     }
@@ -128,12 +139,47 @@ const askGemini = async (question, res) => {
   }
 };
 
+app.post("/askImg", async (req, res) => {
+  const { question, imageUrl } = req.body;
+  try {
+    const base64Image = await getImageAsBase64(imageUrl);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+
+    const parts = [
+      {
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Image,
+        },
+      },
+      {
+        text:
+          "You are only allowed to answer questions related to IT job seeking, and use English to answer. Your answer must be clear and less than 100 words. You can give me some useful advice if necessary or provide some information related to the job in the image if any. My question: " +
+          question,
+      },
+    ];
+
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts }],
+      generationConfig: {
+        maxOutputTokens: 4096,
+      },
+    });
+
+    const responseText = result.response.text().trim();
+    console.log(responseText);
+    res.json({ answer: responseText });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post("/ask", async (req, res) => {
   const { question } = req.body;
   await askGemini(question, res);
 });
 
-// https://github.com/VishwaGauravIn/linkedin-jobs-api
 app.post("/findJobs", async (req, res) => {
   try {
     const { title, level } = req.body;
@@ -157,10 +203,6 @@ app.post("/findJobs", async (req, res) => {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal server error." });
   }
-});
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
 });
 
 app.post("/findCompanyLocations", (req, res) => {
@@ -200,4 +242,9 @@ app.get("/news", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
