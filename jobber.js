@@ -46,14 +46,14 @@ function UpdateConversation(role, text, JsonArray) {
 async function getImageAsBase64(url) {
   try {
     // Fetch the image using axios
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    const response = await axios.get(url, { responseType: "arraybuffer" });
 
     // Convert the image buffer to base64
-    const base64Data = Buffer.from(response.data, 'binary').toString('base64');
+    const base64Data = Buffer.from(response.data, "binary").toString("base64");
 
     return base64Data;
   } catch (error) {
-    console.error('Error fetching or converting the image:', error.message);
+    console.error("Error fetching or converting the image:", error.message);
     throw error;
   }
 }
@@ -167,7 +167,8 @@ app.post("/askImg", async (req, res) => {
     });
 
     const responseText = result.response.text().trim();
-    console.log(responseText);
+    chatLog = UpdateConversation("user", question, chatLog);
+    chatLog = UpdateConversation("model", responseText, chatLog);
     res.json({ answer: responseText });
   } catch (error) {
     console.error("Error:", error);
