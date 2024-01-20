@@ -140,9 +140,9 @@ const askGemini = async (question, res) => {
 };
 
 app.post("/askImg", async (req, res) => {
-  const { question, imageUrl } = req.body;
+  const { question, imageUrl, base64 } = req.body;
   try {
-    const base64Image = await getImageAsBase64(imageUrl);
+    const base64Image = base64 ?? (await getImageAsBase64(imageUrl));
     const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
 
     const parts = [
